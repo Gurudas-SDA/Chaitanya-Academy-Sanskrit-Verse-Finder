@@ -59,12 +59,12 @@ def calculate_fragment_match(search_text: str, verse_text: str) -> tuple:
     """Vienkāršs algoritms BEZ rapidfuzz AR DEBUG"""
     ns, nv = normalize_text(search_text), normalize_text(verse_text)
     
-    # DEBUG - tikai BG 18.66 pantam
-    is_bg_1866 = "sarva-dharmān parityajya" in verse_text
+    # DEBUG - pārbauda normalizētu versiju
+    is_bg_1866 = "sarvadharmanparityajya" in nv and "moksayisyami" in nv
     
     if is_bg_1866:
         add_debug("=" * 50)
-        add_debug("DEBUG: Bhagavad-gītā 18.66 atrasts!")
+        add_debug("DEBUG: Bhagavad-gītā 18.66 ATRASTS!")
         add_debug(f"Meklējamais oriģ: '{search_text}'")
         add_debug(f"Pants oriģ: '{verse_text[:80]}'")
         add_debug(f"Search norm: '{ns}'")
@@ -83,13 +83,20 @@ def calculate_fragment_match(search_text: str, verse_text: str) -> tuple:
         return 1.0, 0, len(ns)
     
     # Pants sākas ar fragmentu
-    if nv.startswith(ns):
+    starts = nv.startswith(ns)
+    if is_bg_1866:
+        add_debug(f"StartsWith check: {starts}")
+    
+    if starts:
         if is_bg_1866:
             add_debug("RESULT: 1.0 (startswith match!)")
         return 1.0, 0, len(ns)
     
     # Fragments atrodas pantā
     pos = nv.find(ns)
+    if is_bg_1866:
+        add_debug(f"Find check: pos={pos}")
+    
     if pos >= 0:
         if is_bg_1866:
             add_debug(f"RESULT: 0.95 (found at position {pos})")
@@ -112,9 +119,10 @@ def calculate_fragment_match(search_text: str, verse_text: str) -> tuple:
     position = match.b if match.size > 0 else 999999
     
     if is_bg_1866:
-        add_debug(f"RESULT: {score:.3f} (SequenceMatcher)")
+        add_debug(f"RESULT: {score:.3f} (SequenceMatcher fallback)")
         add_debug(f"Prefix match: {prefix_length}/{len(ns)} burti")
         add_debug(f"Position: {position}")
+        add_debug("=" * 50)
     
     return score, position, prefix_length
 
