@@ -279,43 +279,6 @@ def load_database_from_file(file_path: str):
             })
     return database, len(database)
 
-@st.cache_data
-def load_database(uploaded_file):
-    try:
-        if uploaded_file.name.endswith('.csv'):
-            import csv
-            content = uploaded_file.read().decode('utf-8-sig')
-            lines = content.splitlines()
-            delimiter = ',' if content.count(',') >= content.count(';') else ';'
-            reader = csv.DictReader(lines, delimiter=delimiter)
-            database = []
-            for row in reader:
-                if row.get('IAST Verse') and row.get('IAST Verse').strip():
-                    database.append({
-                        'iast_verse': str(row.get('IAST Verse', '')).strip(),
-                        'original_source': str(row.get('Original Source', '')).strip() if row.get('Original Source') else '',
-                        'author': str(row.get('Author', '')).strip() if row.get('Author') else '',
-                        'context': str(row.get('Context', '')).strip() if row.get('Context') else '',
-                        'english_translation': str(row.get('English Translation', '')).strip() if row.get('English Translation') else '',
-                        'cited_in': str(row.get('Cited In', '')).strip() if row.get('Cited In') else ''
-                    })
-        else:
-            df = pd.read_excel(uploaded_file, sheet_name=0)
-            database = []
-            for _, row in df.iterrows():
-                if pd.notna(row.get('IAST Verse')) and str(row.get('IAST Verse')).strip():
-                    database.append({
-                        'iast_verse': str(row.get('IAST Verse', '')).strip(),
-                        'original_source': str(row.get('Original Source', '')).strip() if pd.notna(row.get('Original Source')) else '',
-                        'author': str(row.get('Author', '')).strip() if pd.notna(row.get('Author')) else '',
-                        'context': str(row.get('Context', '')).strip() if pd.notna(row.get('Context')) else '',
-                        'english_translation': str(row.get('English Translation', '')).strip() if pd.notna(row.get('English Translation')) else '',
-                        'cited_in': str(row.get('Cited In', '')).strip() if pd.notna(row.get('Cited In')) else ''
-                    })
-        return database, len(database)
-    except Exception as e:
-        return None, str(e)
-
 def search_verses(search_text: str, database, max_results=20, min_confidence=0.3):
     results = []
     
@@ -383,7 +346,7 @@ def verse_lines_from_cell(cell: str):
 def main():
     st.markdown("<h1>Sanskrit Verse Finder</h1>", unsafe_allow_html=True)
 
-    # Automātiska ielāde no blakus esošā Excel
+    # Automātiska ielāde no GitHub
     if 'database' not in st.session_state and os.path.exists(DEFAULT_DB_FILE):
         with st.spinner('Ielādē datu bāzi...'):
             data, cnt = load_database_from_file(DEFAULT_DB_FILE)
@@ -394,47 +357,15 @@ def main():
 
     # Sānjosla
     with st.sidebar:
-        st.markdown("### Datu bāze")
+        if 'database' not in st.session_state:
+            st.error("Datu bāze nav pieejama")
+            st.stop()
         
-        if 'database' in st.session_state:
-            # Ja DB ielādēta - rāda success
-            st.success(f"✓ Ielādēti {st.session_state.get('db_count', 0)} panti")
-            st.info(f"Avots: {st.session_state.get('db_source', 'Unknown')}")
-            
-            # File uploader kā rezerves variants (sakļauts)
-            with st.expander("📁 Mainīt datu bāzi"):
-                uploaded_file = st.file_uploader("Augšupielādēt citu failu", type=['xlsx', 'xls', 'csv'], label_visibility="collapsed")
-                if uploaded_file:
-                    with st.spinner('Ielādē jaunu datu bāzi...'):
-                        data, cnt_or_err = load_database(uploaded_file)
-                        if data:
-                            st.session_state['database'] = data
-                            st.session_state['db_source'] = uploaded_file.name
-                            st.session_state['db_count'] = cnt_or_err
-                            st.rerun()
-                        else:
-                            st.error(f"Kļūda: {cnt_or_err}")
-        else:
-            # Ja DB NAV ielādēta - rāda uploader
-            st.warning("Datu bāze nav ielādēta")
-            uploaded_file = st.file_uploader("Augšupielādēt Excel/CSV", type=['xlsx', 'xls', 'csv'])
-            if uploaded_file:
-                with st.spinner('Ielādē datu bāzi...'):
-                    data, cnt_or_err = load_database(uploaded_file)
-                    if data:
-                        st.session_state['database'] = data
-                        st.session_state['db_source'] = uploaded_file.name
-                        st.session_state['db_count'] = cnt_or_err
-                        st.rerun()
-                    else:
-                        st.error(f"Kļūda: {cnt_or_err}")
-        
-        st.markdown("---")
-        max_results = st.slider("Max rezultāti", 5, 20)
-        min_confidence = st.slider("Min %", 50, 80) / 100
+        max_results = st.slider("Max rezultāti", 5, 50, 20)
+        min_confidence = st.slider("Min %", 10, 80, 30) / 100
 
     if 'database' not in st.session_state:
-        st.info("Augšupielādējiet Excel/CSV failu, lai sāktu")
+        st.error("Datu bāze nav ielādēta. Lūdzu sazinieties ar administratoru.")
         return
 
     total = st.session_state.get('db_count', len(st.session_state['database']))
@@ -459,13 +390,12 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
 
     # Meklēšana
-    search_input = st.text_area("", height=80, placeholder="If you don't have the exact quote, write what you remember / Если у вас нет точной цитаты, пишите то, что помните")
+    search_input = st.text_area("", height=80, placeholder="sarva-dharmān parityajya")
     if st.button("Find the verse", type="primary"):
         if not search_input.strip():
             st.warning("Ierakstiet tekstu!")
             return
 
-        # PIEVIENOTS SPINNER
         with st.spinner('Meklē datubāzē...'):
             results = search_verses(search_input, st.session_state['database'], max_results, min_confidence)
         
@@ -488,7 +418,6 @@ def main():
                 for ln in highlighted_lines:
                     st.markdown(f"<p class='verse-line'>{ln}</p>", unsafe_allow_html=True)
             else:
-                # Fallback ja nav rindu
                 st.markdown(f"<p class='verse-line'>{verse_data['iast_verse']}</p>", unsafe_allow_html=True)
 
             # Lielāka atstarpe starp pantu un avotiem
@@ -497,7 +426,7 @@ def main():
             # Primārais avots
             st.markdown(f"<p>{format_source_and_author(verse_data['original_source'], verse_data['author'])}</p>",
                         unsafe_allow_html=True)
-            # Sekundārais avots (slīpraksts, nosaukums treknrakstā)
+            # Sekundārais avots
             if verse_data['cited_in']:
                 cited_html = render_cited_item(verse_data['cited_in'])
                 if cited_html:
