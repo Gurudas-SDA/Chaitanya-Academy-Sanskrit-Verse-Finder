@@ -361,7 +361,7 @@ def main():
             st.error("Datu bāze nav pieejama")
             st.stop()
         
-        max_results = st.slider("Max rezultāti", 5, 50, 20)
+        max_results = st.slider("Max results", 5, 50, 20)
         min_confidence = st.slider("Min %", 10, 80, 30) / 100
 
     if 'database' not in st.session_state:
