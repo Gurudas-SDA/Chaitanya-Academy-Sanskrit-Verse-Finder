@@ -390,7 +390,7 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
 
     # Meklēšana
-    search_input = st.text_area("", height=80, placeholder="sarva-dharmān parityajya")
+    search_input = st.text_area("", height=80, placeholder="If you don't have the exact quote, write what you remember / Если у вас нет точной цитаты, напишите то, что помните")
     if st.button("Find the verse", type="primary"):
         if not search_input.strip():
             st.warning("Ierakstiet tekstu!")
