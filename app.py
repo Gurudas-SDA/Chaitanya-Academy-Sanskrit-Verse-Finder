@@ -430,8 +430,8 @@ def main():
                         st.error(f"Kļūda: {cnt_or_err}")
         
         st.markdown("---")
-        max_results = st.slider("Max rezultāti", 5, 50, 20)
-        min_confidence = st.slider("Min %", 10, 80, 30) / 100
+        max_results = st.slider("Max rezultāti", 5, 20)
+        min_confidence = st.slider("Min %", 50, 80) / 100
 
     if 'database' not in st.session_state:
         st.info("Augšupielādējiet Excel/CSV failu, lai sāktu")
@@ -459,7 +459,7 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
 
     # Meklēšana
-    search_input = st.text_area("", height=80, placeholder="sarva-dharmān parityajya")
+    search_input = st.text_area("", height=80, placeholder="If you don't have the exact quote, write what you remember / Если у вас нет точной цитаты, пишите то, что помните")
     if st.button("Find the verse", type="primary"):
         if not search_input.strip():
             st.warning("Ierakstiet tekstu!")
