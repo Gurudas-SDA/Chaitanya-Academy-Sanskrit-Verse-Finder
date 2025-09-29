@@ -26,7 +26,7 @@ p { margin: 0; line-height: 1.2; }
 /* Avotu saraksts: ciešs divkolonnu režģis ar šauru atstarpi */
 .sources-grid {
   display: grid;
-  grid-template-columns: 1fr 12px 1fr;  /* 12px – ļoti šaura atstarpe */
+  grid-template-columns: 1fr 12px 1fr;
   column-gap: 8px;
   align-items: start;
 }
@@ -35,13 +35,13 @@ p { margin: 0; line-height: 1.2; }
 
 /* ATSTARPES KONTROLE */
 :root{
-  --verse-line-gap: 0.15rem; /* starp panta rindiņām (tikpat kā starp avotu ierakstiem) */
-  --verse-block-gap: 0.6rem; /* starp pēdējo panta rindu un avotiem */
+  --verse-line-gap: 0.15rem;
+  --verse-block-gap: 0.6rem;
 }
 .verse-line { margin: 0 0 var(--verse-line-gap) 0; line-height: 1.2; }
 .verse-gap  { height: var(--verse-block-gap); }
 
-/* Sarkans highlight meklētajam fragmentam */
+/* Sarkans highlight meklējamam fragmentam */
 .highlight { color: #dc2626; font-weight: 600; }
 
 .block-container { padding-top: 1rem; }
@@ -271,11 +271,11 @@ def load_database_from_file(file_path: str):
         if pd.notna(row.get('IAST Verse')) and str(row.get('IAST Verse')).strip():
             database.append({
                 'iast_verse': str(row.get('IAST Verse', '')).strip(),
-                'original_source': str(row.get('Original Source', '')).strip(),
-                'author': str(row.get('Author', '')).strip(),
-                'context': str(row.get('Context', '')).strip(),
-                'english_translation': str(row.get('English Translation', '')).strip(),
-                'cited_in': str(row.get('Cited In', '')).strip()
+                'original_source': str(row.get('Original Source', '')).strip() if pd.notna(row.get('Original Source')) else '',
+                'author': str(row.get('Author', '')).strip() if pd.notna(row.get('Author')) else '',
+                'context': str(row.get('Context', '')).strip() if pd.notna(row.get('Context')) else '',
+                'english_translation': str(row.get('English Translation', '')).strip() if pd.notna(row.get('English Translation')) else '',
+                'cited_in': str(row.get('Cited In', '')).strip() if pd.notna(row.get('Cited In')) else ''
             })
     return database, len(database)
 
@@ -293,11 +293,11 @@ def load_database(uploaded_file):
                 if row.get('IAST Verse') and row.get('IAST Verse').strip():
                     database.append({
                         'iast_verse': str(row.get('IAST Verse', '')).strip(),
-                        'original_source': str(row.get('Original Source', '')).strip(),
-                        'author': str(row.get('Author', '')).strip(),
-                        'context': str(row.get('Context', '')).strip(),
-                        'english_translation': str(row.get('English Translation', '')).strip(),
-                        'cited_in': str(row.get('Cited In', '')).strip()
+                        'original_source': str(row.get('Original Source', '')).strip() if row.get('Original Source') else '',
+                        'author': str(row.get('Author', '')).strip() if row.get('Author') else '',
+                        'context': str(row.get('Context', '')).strip() if row.get('Context') else '',
+                        'english_translation': str(row.get('English Translation', '')).strip() if row.get('English Translation') else '',
+                        'cited_in': str(row.get('Cited In', '')).strip() if row.get('Cited In') else ''
                     })
         else:
             df = pd.read_excel(uploaded_file, sheet_name=0)
@@ -306,11 +306,11 @@ def load_database(uploaded_file):
                 if pd.notna(row.get('IAST Verse')) and str(row.get('IAST Verse')).strip():
                     database.append({
                         'iast_verse': str(row.get('IAST Verse', '')).strip(),
-                        'original_source': str(row.get('Original Source', '')).strip(),
-                        'author': str(row.get('Author', '')).strip(),
-                        'context': str(row.get('Context', '')).strip(),
-                        'english_translation': str(row.get('English Translation', '')).strip(),
-                        'cited_in': str(row.get('Cited In', '')).strip()
+                        'original_source': str(row.get('Original Source', '')).strip() if pd.notna(row.get('Original Source')) else '',
+                        'author': str(row.get('Author', '')).strip() if pd.notna(row.get('Author')) else '',
+                        'context': str(row.get('Context', '')).strip() if pd.notna(row.get('Context')) else '',
+                        'english_translation': str(row.get('English Translation', '')).strip() if pd.notna(row.get('English Translation')) else '',
+                        'cited_in': str(row.get('Cited In', '')).strip() if pd.notna(row.get('Cited In')) else ''
                     })
         return database, len(database)
     except Exception as e:
@@ -343,16 +343,18 @@ def search_verses(search_text: str, database, max_results=20, min_confidence=0.3
             'prefix_length': prefix_len
         })
     
-    # Kārtojums: 
-    # 1. confidence (dilstošā) 
-    # 2. prefix_length (dilstošā) - jo vairāk secīgo, jo labāk
-    # 3. pozīcija (augošā) - jo agrāk, jo labāk
+    # Kārtojums: confidence → prefix_length → pozīcija
     results.sort(key=lambda x: (-x['confidence'], -x['prefix_length'], x['position']))
     return results[:max_results]
 
 def clean_author(author: str) -> str:
-    if not author: return ""
-    return re.sub(r'^\s*by\s+', '', str(author), flags=re.I).strip()
+    if not author: 
+        return ""
+    # Pārbauda vai ir NaN vai citas nederīgas vērtības
+    author_str = str(author).strip()
+    if author_str.lower() in ['nan', 'none', 'null', '']:
+        return ""
+    return re.sub(r'^\s*by\s+', '', author_str, flags=re.I).strip()
 
 def format_source_and_author(source, author) -> str:
     a = clean_author(author)
@@ -361,16 +363,16 @@ def format_source_and_author(source, author) -> str:
     if a: return f"(by {a})"
     return "NOT AVAILABLE"
 
-# ——— "by" formatēšana Source sarakstam: **Title** by Author, viss slīprakstā
 _by_regex = re.compile(r"\s+by\s+", re.IGNORECASE)
 def render_cited_item(text: str) -> str:
+    if not text or str(text).strip().lower() in ['nan', 'none', 'null', '']:
+        return ""
     parts = _by_regex.split(text, maxsplit=1)
     if len(parts) == 2:
         title, author = parts[0].strip(), parts[1].strip()
         return f"<em><strong>{title}</strong> by {author}</em>"
     return f"<em>{text}</em>"
 
-# ——— Panta rindas pēc Excel šūnas struktūras
 def verse_lines_from_cell(cell: str):
     if not cell: return []
     raw_lines = [ln.strip() for ln in str(cell).split("\n") if ln.strip()]
@@ -383,98 +385,125 @@ def main():
 
     # Automātiska ielāde no blakus esošā Excel
     if 'database' not in st.session_state and os.path.exists(DEFAULT_DB_FILE):
-        data, cnt = load_database_from_file(DEFAULT_DB_FILE)
-        if data:
-            st.session_state['database'] = data
-            st.session_state['db_source'] = os.path.basename(DEFAULT_DB_FILE)
-            st.session_state['db_count'] = cnt
+        with st.spinner('Ielādē datu bāzi...'):
+            data, cnt = load_database_from_file(DEFAULT_DB_FILE)
+            if data:
+                st.session_state['database'] = data
+                st.session_state['db_source'] = os.path.basename(DEFAULT_DB_FILE)
+                st.session_state['db_count'] = cnt
 
     # Sānjosla
     with st.sidebar:
         st.markdown("### Datu bāze")
-        st.text("=== DEBUG ===")
-        st.text(f"Fails eksistē: {os.path.exists(DEFAULT_DB_FILE)}")
-        st.text(f"DB ielādēta: {'database' in st.session_state}")
-        st.code(DEFAULT_DB_FILE, language=None)
-
-        uploaded_file = st.file_uploader("Augšupielādēt (rezerves variants)", type=['xlsx', 'xls', 'csv'])
-        if uploaded_file:
-            data, cnt_or_err = load_database(uploaded_file)
-            if data:
-                st.session_state['database'] = data
-                st.session_state['db_source'] = uploaded_file.name
-                st.session_state['db_count'] = cnt_or_err
-                st.rerun()
-            else:
-                st.error(f"Kļūda: {cnt_or_err}")
-
+        
+        if 'database' in st.session_state:
+            # Ja DB ielādēta - rāda success
+            st.success(f"✓ Ielādēti {st.session_state.get('db_count', 0)} panti")
+            st.info(f"Avots: {st.session_state.get('db_source', 'Unknown')}")
+            
+            # File uploader kā rezerves variants (sakļauts)
+            with st.expander("📁 Mainīt datu bāzi"):
+                uploaded_file = st.file_uploader("Augšupielādēt citu failu", type=['xlsx', 'xls', 'csv'], label_visibility="collapsed")
+                if uploaded_file:
+                    with st.spinner('Ielādē jaunu datu bāzi...'):
+                        data, cnt_or_err = load_database(uploaded_file)
+                        if data:
+                            st.session_state['database'] = data
+                            st.session_state['db_source'] = uploaded_file.name
+                            st.session_state['db_count'] = cnt_or_err
+                            st.rerun()
+                        else:
+                            st.error(f"Kļūda: {cnt_or_err}")
+        else:
+            # Ja DB NAV ielādēta - rāda uploader
+            st.warning("Datu bāze nav ielādēta")
+            uploaded_file = st.file_uploader("Augšupielādēt Excel/CSV", type=['xlsx', 'xls', 'csv'])
+            if uploaded_file:
+                with st.spinner('Ielādē datu bāzi...'):
+                    data, cnt_or_err = load_database(uploaded_file)
+                    if data:
+                        st.session_state['database'] = data
+                        st.session_state['db_source'] = uploaded_file.name
+                        st.session_state['db_count'] = cnt_or_err
+                        st.rerun()
+                    else:
+                        st.error(f"Kļūda: {cnt_or_err}")
+        
+        st.markdown("---")
         max_results = st.slider("Max rezultāti", 5, 50, 20)
         min_confidence = st.slider("Min %", 10, 80, 30) / 100
-        st.checkbox("Debug režīms", value=False)
 
-    if 'database' in st.session_state:
-        total = st.session_state.get('db_count', len(st.session_state['database']))
+    if 'database' not in st.session_state:
+        st.info("Augšupielādējiet Excel/CSV failu, lai sāktu")
+        return
 
-        # Virsraksts: Sources (N verses) – N uz pusi mazāks
-        st.markdown(f"<div class='sv-title'>Sources <span class='verses'>({total} verses)</span></div>", unsafe_allow_html=True)
+    total = st.session_state.get('db_count', len(st.session_state['database']))
 
-        # Avotu saraksts (divas kolonnas ar šauru atstarpi)
-        cited_list = sorted(set(d['cited_in'] for d in st.session_state['database'] if d['cited_in']))
-        if cited_list:
-            half = (len(cited_list) + 1) // 2
-            left = cited_list[:half]; right = cited_list[half:]
-            left_html  = "".join(f"<p class='source-item'>{render_cited_item(c)}</p>" for c in left)
-            right_html = "".join(f"<p class='source-item'>{render_cited_item(c)}</p>" for c in right)
-            html = f"""
-            <div class="sources-grid">
-              <div>{left_html}</div>
-              <div class="gap"></div>
-              <div>{right_html}</div>
-            </div>"""
-            st.markdown(html, unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+    # Virsraksts: Sources (N verses)
+    st.markdown(f"<div class='sv-title'>Sources <span class='verses'>({total} verses)</span></div>", unsafe_allow_html=True)
 
-        # Meklēšana
-        search_input = st.text_area("", height=80, placeholder="sarva-dharmān parityajya")
-        if st.button("Find the verse", type="primary"):
-            if not search_input.strip():
-                st.warning("Ierakstiet tekstu!")
-                return
+    # Avotu saraksts (divas kolonnas ar šauru atstarpi)
+    cited_list = sorted(set(d['cited_in'] for d in st.session_state['database'] if d['cited_in']))
+    if cited_list:
+        half = (len(cited_list) + 1) // 2
+        left = cited_list[:half]; right = cited_list[half:]
+        left_html  = "".join(f"<p class='source-item'>{render_cited_item(c)}</p>" for c in left)
+        right_html = "".join(f"<p class='source-item'>{render_cited_item(c)}</p>" for c in right)
+        html = f"""
+        <div class="sources-grid">
+          <div>{left_html}</div>
+          <div class="gap"></div>
+          <div>{right_html}</div>
+        </div>"""
+        st.markdown(html, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
+    # Meklēšana
+    search_input = st.text_area("", height=80, placeholder="sarva-dharmān parityajya")
+    if st.button("Find the verse", type="primary"):
+        if not search_input.strip():
+            st.warning("Ierakstiet tekstu!")
+            return
+
+        # PIEVIENOTS SPINNER
+        with st.spinner('Meklē datubāzē...'):
             results = search_verses(search_input, st.session_state['database'], max_results, min_confidence)
-            if not results:
-                st.markdown("<p>Nav rezultātu</p>", unsafe_allow_html=True)
-                return
+        
+        if not results:
+            st.markdown("<p>Nav rezultātu</p>", unsafe_allow_html=True)
+            return
 
-            st.markdown(f"<p><b>REZULTĀTI:</b> '{search_input}' | Atrasti: {len(results)}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p><b>REZULTĀTI:</b> '{search_input}' | Atrasti: {len(results)}</p>", unsafe_allow_html=True)
+        st.markdown("---")
+
+        for result in results:
+            verse_data = result['verse_data']
+            score = result['score_percent']
+            st.markdown(f"<p><b>{score:.0f}%</b></p>", unsafe_allow_html=True)
+
+            # Pantus drukājam pa rindām ar vienādu nelielu atstarpi UN iekrāsojam fragmentu
+            lines = verse_lines_from_cell(verse_data['iast_verse'])
+            if lines:
+                highlighted_lines = highlight_verse_lines(lines, search_input, verse_data['iast_verse'])
+                for ln in highlighted_lines:
+                    st.markdown(f"<p class='verse-line'>{ln}</p>", unsafe_allow_html=True)
+            else:
+                # Fallback ja nav rindu
+                st.markdown(f"<p class='verse-line'>{verse_data['iast_verse']}</p>", unsafe_allow_html=True)
+
+            # Lielāka atstarpe starp pantu un avotiem
+            st.markdown("<div class='verse-gap'></div>", unsafe_allow_html=True)
+
+            # Primārais avots
+            st.markdown(f"<p>{format_source_and_author(verse_data['original_source'], verse_data['author'])}</p>",
+                        unsafe_allow_html=True)
+            # Sekundārais avots (slīpraksts, nosaukums treknrakstā)
+            if verse_data['cited_in']:
+                cited_html = render_cited_item(verse_data['cited_in'])
+                if cited_html:
+                    st.markdown(f"<p>{cited_html}</p>", unsafe_allow_html=True)
+
             st.markdown("---")
-
-            for result in results:
-                verse_data = result['verse_data']
-                score = result['score_percent']
-                st.markdown(f"<p><b>{score:.0f}%</b></p>", unsafe_allow_html=True)
-
-                # Pantus drukājam pa rindiņām ar vienādu nelielu atstarpi UN iekrāsojam fragmentu
-                lines = verse_lines_from_cell(verse_data['iast_verse'])
-                if lines:
-                    highlighted_lines = highlight_verse_lines(lines, search_input, verse_data['iast_verse'])
-                    for ln in highlighted_lines:
-                        st.markdown(f"<p class='verse-line'>{ln}</p>", unsafe_allow_html=True)
-                else:
-                    # Fallback ja nav rindu
-                    st.markdown(f"<p class='verse-line'>{verse_data['iast_verse']}</p>", unsafe_allow_html=True)
-
-                # Lielāka atstarpe starp pantu un avotiem
-                st.markdown("<div class='verse-gap'></div>", unsafe_allow_html=True)
-
-                # Primārais avots
-                st.markdown(f"<p>{format_source_and_author(verse_data['original_source'], verse_data['author'])}</p>",
-                            unsafe_allow_html=True)
-                # Sekundārais avots (slīpraksts, nosaukums treknrakstā)
-                if verse_data['cited_in']:
-                    st.markdown(f"<p>{render_cited_item(verse_data['cited_in'])}</p>", unsafe_allow_html=True)
-
-                st.markdown("---")
 
 if __name__ == "__main__":
     main()
