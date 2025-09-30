@@ -23,7 +23,7 @@ p { margin: 0; line-height: 1.2; }
 .sv-title { font-size: 2rem; font-weight: 700; margin: 0.5rem 0 0.75rem 0; }
 .sv-title .verses { font-size: 50%; font-weight: 500; }
 
-/* Avotu saraksts: ciešs divkolonnu režģis ar šauru atstarpi */
+/* Avotu saraksts: cietš divkolonnu režģis ar šauru atstarpi */
 .sources-grid {
   display: grid;
   grid-template-columns: 1fr 12px 1fr;
@@ -50,6 +50,7 @@ p { margin: 0; line-height: 1.2; }
 
 # === Palīgfunkcijas ===
 def normalize_text(text: str) -> str:
+    """Normalizē tekstu meklēšanai - noņem visas atstarpes, diakritiku utt."""
     if not text:
         return ""
     text = unicodedata.normalize('NFD', text)
@@ -57,6 +58,24 @@ def normalize_text(text: str) -> str:
     text = text.replace('-', '').replace(' ', '').replace('\n', '')
     text = re.sub(r'[^\w]', '', text)
     return text.lower().strip()
+
+def normalize_for_sorting(text: str) -> str:
+    """Normalizē tekstu alfabētiskai šķirošanai, noņemot diakritiskās zīmes"""
+    if not text:
+        return ""
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    return text.lower().strip()
+
+def clean_verse_text(text: str) -> str:
+    """Notīra Excel encoding artefaktus un citus nevēlamus simbolus"""
+    if not text:
+        return ""
+    # Noņem Excel encoding simbolus
+    text = text.replace('_x000D_', '').replace('_x000A_', '')
+    # Noņem ciparus iekavās rindas beigās, piemēram (1), (2)
+    text = re.sub(r'\s*\(\d+\)\s*$', '', text)
+    return text.strip()
 
 def find_fragment_position(search_text: str, verse_text: str) -> int:
     """Atrod, kurā pozīcijā normalizētajā tekstā ir fragments"""
@@ -169,7 +188,7 @@ def count_words_with_matches(search_text: str, full_verse: str) -> int:
     return len(words_with_matches)
 
 def highlight_verse_lines(lines: list, search_text: str, full_verse: str) -> list:
-    """Iekrāso tikai tos burtus kas sakrīt meklētā fragmenta ietvaros"""
+    """Iekrāso tikai tos burtus kas sakriit meklētā fragmenta ietvaros"""
     if not lines or not search_text:
         return lines
     
@@ -265,12 +284,13 @@ def highlight_verse_lines(lines: list, search_text: str, full_verse: str) -> lis
 
 @st.cache_data
 def load_database_from_file(file_path: str):
+    """Ielādē datubāzi no Excel faila"""
     df = pd.read_excel(file_path, sheet_name=0)
     database = []
     for _, row in df.iterrows():
         if pd.notna(row.get('IAST Verse')) and str(row.get('IAST Verse')).strip():
             database.append({
-                'iast_verse': str(row.get('IAST Verse', '')).strip(),
+                'iast_verse': clean_verse_text(str(row.get('IAST Verse', '')).strip()),
                 'original_source': str(row.get('Original Source', '')).strip() if pd.notna(row.get('Original Source')) else '',
                 'author': str(row.get('Author', '')).strip() if pd.notna(row.get('Author')) else '',
                 'context': str(row.get('Context', '')).strip() if pd.notna(row.get('Context')) else '',
@@ -280,6 +300,7 @@ def load_database_from_file(file_path: str):
     return database, len(database)
 
 def search_verses(search_text: str, database, max_results=20, min_confidence=0.3):
+    """Meklē pantus datubāzē"""
     results = []
     
     # Skaita cik vārdi ir meklējamajā frāzē
@@ -311,15 +332,16 @@ def search_verses(search_text: str, database, max_results=20, min_confidence=0.3
     return results[:max_results]
 
 def clean_author(author: str) -> str:
+    """Attīra autora vārdu no 'by' un nederīgām vērtībām"""
     if not author: 
         return ""
-    # Pārbauda vai ir NaN vai citas nederīgas vērtības
     author_str = str(author).strip()
     if author_str.lower() in ['nan', 'none', 'null', '']:
         return ""
     return re.sub(r'^\s*by\s+', '', author_str, flags=re.I).strip()
 
 def format_source_and_author(source, author) -> str:
+    """Formatē avota un autora informāciju"""
     a = clean_author(author)
     if source and a: return f"{source} (by {a})"
     if source: return source
@@ -328,6 +350,7 @@ def format_source_and_author(source, author) -> str:
 
 _by_regex = re.compile(r"\s+by\s+", re.IGNORECASE)
 def render_cited_item(text: str) -> str:
+    """Formatē citēto avotu ar HTML"""
     if not text or str(text).strip().lower() in ['nan', 'none', 'null', '']:
         return ""
     parts = _by_regex.split(text, maxsplit=1)
@@ -337,8 +360,11 @@ def render_cited_item(text: str) -> str:
     return f"<em>{text}</em>"
 
 def verse_lines_from_cell(cell: str):
+    """Iegūst panta rindas no Excel šūnas"""
     if not cell: return []
-    raw_lines = [ln.strip() for ln in str(cell).split("\n") if ln.strip()]
+    # Vispirms notīra encoding artefaktus
+    cell = clean_verse_text(cell)
+    raw_lines = [clean_verse_text(ln) for ln in str(cell).split("\n") if ln.strip()]
     starred = [ln[1:-1].strip() for ln in raw_lines if ln.startswith("*") and ln.endswith("*") and len(ln) >= 2]
     return starred if starred else raw_lines
 
@@ -346,7 +372,7 @@ def verse_lines_from_cell(cell: str):
 def main():
     st.markdown("<h1>Gauḍīya Vaiṣṇava Verse Finder</h1>", unsafe_allow_html=True)
 
-    # Automātiska ielāde no GitHub
+    # Automātiska ielāde
     if 'database' not in st.session_state and os.path.exists(DEFAULT_DB_FILE):
         with st.spinner('Ielādē datu bāzi...'):
             data, cnt = load_database_from_file(DEFAULT_DB_FILE)
@@ -374,7 +400,8 @@ def main():
     st.markdown(f"<div class='sv-title'>Sources <span class='verses'>({total} verses)</span></div>", unsafe_allow_html=True)
 
     # Avotu saraksts (divas kolonnas ar šauru atstarpi)
-    cited_list = sorted(set(d['cited_in'] for d in st.session_state['database'] if d['cited_in']))
+    cited_set = set(d['cited_in'] for d in st.session_state['database'] if d['cited_in'])
+    cited_list = sorted(cited_set, key=normalize_for_sorting)
     if cited_list:
         half = (len(cited_list) + 1) // 2
         left = cited_list[:half]; right = cited_list[half:]
