@@ -7,7 +7,7 @@ import os
 from rapidfuzz import fuzz
 from difflib import SequenceMatcher
 
-st.set_page_config(page_title="Sanskrit Verse Finder", layout="wide")
+st.set_page_config(page_title="Gaudiya Vaishnava Verse Finder", layout="wide")
 
 # === Ceļš uz datubāzi (Excel blakus app.py) ===
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
