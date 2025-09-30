@@ -396,7 +396,7 @@ def main():
             st.warning("Ierakstiet tekstu!")
             return
 
-        with st.spinner('Meklē datubāzē...'):
+        with st.spinner('Finding...'):
             results = search_verses(search_input, st.session_state['database'], max_results, min_confidence)
         
         if not results:
