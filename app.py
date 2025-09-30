@@ -344,7 +344,7 @@ def verse_lines_from_cell(cell: str):
 
 # === App ===
 def main():
-    st.markdown("<h1>Sanskrit Verse Finder</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Gaudiya Vaishnava Verse Finder</h1>", unsafe_allow_html=True)
 
     # Automātiska ielāde no GitHub
     if 'database' not in st.session_state and os.path.exists(DEFAULT_DB_FILE):
