@@ -7,7 +7,7 @@ import os
 from rapidfuzz import fuzz
 from difflib import SequenceMatcher
 
-st.set_page_config(page_title="Gaudiya Vaishnava Verse Finder", layout="wide")
+st.set_page_config(page_title="Gauḍīya Vaiṣṇava Verse Finder", layout="wide")
 
 # === Ceļš uz datubāzi (Excel blakus app.py) ===
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -344,7 +344,7 @@ def verse_lines_from_cell(cell: str):
 
 # === App ===
 def main():
-    st.markdown("<h1>Gaudiya Vaishnava Verse Finder</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Gauḍīya Vaiṣṇava Verse Finder</h1>", unsafe_allow_html=True)
 
     # Automātiska ielāde no GitHub
     if 'database' not in st.session_state and os.path.exists(DEFAULT_DB_FILE):
