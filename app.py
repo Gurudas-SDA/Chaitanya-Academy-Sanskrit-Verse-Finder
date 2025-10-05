@@ -235,7 +235,7 @@ def load_database_from_file(file_path: str):
                 'original_source': str(row.get('Original Source', '')).strip() if pd.notna(row.get('Original Source')) else '',
                 'author': str(row.get('Author', '')).strip() if pd.notna(row.get('Author')) else '',
                 'context': str(row.get('Context', '')).strip() if pd.notna(row.get('Context')) else '',
-                'english_translation': str(row.get('Translation', '')).strip() if pd.notna(row.get('Translation')) else '',
+                'english_translation': clean_verse_text(str(row.get('Translation', '')).strip()) if pd.notna(row.get('Translation')) else '',
                 'cited_in': str(row.get('Cited In', '')).strip() if pd.notna(row.get('Cited In')) else ''
             })
     return database, len(database)
