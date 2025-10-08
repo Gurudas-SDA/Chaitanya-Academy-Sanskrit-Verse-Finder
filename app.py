@@ -348,7 +348,7 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
 
     # Meklēšana
-    search_input = st.text_area("", height=80, placeholder="Enter at least 2 words of the verse - Введите минимум 2 слова стиха - Inserisci almeno 2 parole del verso - Introduce al menos 2 palabras del verso - Entrez au moins 2 mots du verset - Gib mindestens 2 Wörter des Verses ein")
+    search_input = st.text_area("", height=80, placeholder="Enter at least 2 words of the verse")
     if st.button("Find the verse", type="primary"):
         if not search_input.strip():
             st.warning("Ierakstiet tekstu!")
