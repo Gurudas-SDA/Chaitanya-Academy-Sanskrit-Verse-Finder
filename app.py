@@ -318,8 +318,8 @@ def main():
             st.error("Datu bāze nav pieejama")
             st.stop()
         
-        max_results = st.slider("Max results", 5, 50, 20)
-        min_confidence = st.slider("Min %", 10, 80, 30) / 100
+        max_results = st.slider("Max verse number", 5, 50, 20)
+        min_confidence = st.slider("Min similarity %", 10, 80, 30) / 100
 
     if 'database' not in st.session_state:
         st.error("Datu bāze nav ielādēta. Lūdzu sazinieties ar administratoru.")
@@ -348,7 +348,7 @@ def main():
         st.markdown("<br>", unsafe_allow_html=True)
 
     # Meklēšana
-    search_input = st.text_area("", height=80, placeholder="Enter a verse fragment to search... / Введите фрагмент стиха для поиска...")
+    search_input = st.text_area("", height=80, placeholder="Enter at least 2 words of the verse - Введите минимум 2 слова стиха - Inserisci almeno 2 parole del verso - Introduce al menos 2 palabras del verso - Entrez au moins 2 mots du verset - Gib mindestens 2 Wörter des Verses ein")
     if st.button("Find the verse", type="primary"):
         if not search_input.strip():
             st.warning("Ierakstiet tekstu!")
@@ -358,10 +358,10 @@ def main():
             results = search_verses(search_input, st.session_state['database'], max_results, min_confidence)
         
         if not results:
-            st.markdown("<p>Nav rezultātu</p>", unsafe_allow_html=True)
+            st.markdown("<p>No results</p>", unsafe_allow_html=True)
             return
 
-        st.markdown(f"<p><b>REZULTĀTI:</b> '{search_input}' | Atrasti: {len(results)}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p><b>RESULTS:</b> '{search_input}' | Found: {len(results)}</p>", unsafe_allow_html=True)
         st.markdown("---")
 
         for result in results:
